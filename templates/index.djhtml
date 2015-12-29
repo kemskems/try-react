@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Todo MVC</title>
+  </head>
+  <body>
+    <h1>My TODO list</h1>
+    <div id="todo-container"></div>
+  </body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.3/react.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flux/2.1.1/Flux.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/EventEmitter/4.3.0/EventEmitter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alt/0.18.1/alt.min.js"></script> 
+  <script type="text/babel" src="{{ url_for('static', filename='js/todo-alt.jsx') }}"></script>
+</html>
