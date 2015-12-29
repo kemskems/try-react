@@ -1,72 +1,104 @@
 // Dispatcher
 
-var alt = new Alt();
+var TodoDispatcher = new Flux.Dispatcher();
 
 // Actions
 
-var TodoActions = alt.createActions({
+var ACTION_TYPES = {
+  ADD_TODO: 'ADD_TODO',
+  TOGGLE_TODO: 'TOGGLE_TODO',
+  CLEAR_TODOS: 'CLEAR_TODOS'
+};
+
+var actions = {
   addTodo: function (text) {
-    return text;
+    TodoDispatcher.dispatch({
+      actionType: ACTION_TYPES.ADD_TODO,
+      todoText: text
+    });
   },
 
   toggleTodo: function (id) {
-    return id;
+    TodoDispatcher.dispatch({
+      actionType: ACTION_TYPES.TOGGLE_TODO,
+      todoId: id
+    });
   },
 
   clearTodos: function () {
-    // Action MUST return so it will dispatch
-    return true;
+    TodoDispatcher.dispatch({
+      actionType: ACTION_TYPES.CLEAR_TODOS
+    });
   }
-});
+};
 
 // Store
 
-var TodoStore = alt.createStore({
-  displayName: 'TodoStore',
+var data = [
+  {text: 'Makan siang', done: false},
+  {text: 'Beli baju', done: true}
+];
 
-  bindListeners: {
-    handleAddTodo: TodoActions.addTodo,
-    handleToggleTodo: TodoActions.toggleTodo,
-    handleClearTodos: TodoActions.clearTodos
+var TodoStore = Object.create(EventEmitter.prototype, {
+  getTodos: {
+    value: function () {
+      return data;
+    }
   },
 
-  state: {
-    todos: [
-      {text: 'Makan siang', done: false},
-      {text: 'Beli baju', done: true}
-    ]
-  },
-
-  publicMethods: {
-    getTodos: function () {
-      return this.state.todos;
-    },
-    getUndoneCount: function () {
-      return this.state.todos.reduce(function (acc, todo) {
+  getUndoneCount: {
+    value: function () {
+      return data.reduce(function (acc, todo) {
         return acc + (todo.done ? 0 : 1);
       }, 0);
     }
   },
 
-  handleAddTodo: function (text) {
-    console.log('this.getState:', typeof this.getState);
-    var todos = this.state.todos;
-    todos.push({text: text, done: false});
-    this.setState({todos: todos});
+  emitChange: {
+    value: function () {
+      this.emitEvent('change');
+    }
   },
 
-  handleToggleTodo: function (id) {
-    var todos = this.state.todos;
-    todos[id].done = !todos[id].done;
-    this.setState({todos: todos});
+  addChangeListener: {
+    value: function (listener) {
+      this.addListener('change', listener);
+    }
   },
 
-  handleClearTodos: function () {
-    var newTodos = this.state.todos.filter(function (todo) {
-      return !todo.done;
-    });
-    this.setState({todos: newTodos});
+  removeChangeListener: {
+    value: function (listener) {
+      this.removeListener('change', listener);
+    }
   }
+});
+
+TodoStore.dispatchToken = TodoDispatcher.register(function (payload) {
+  switch (payload.actionType) {
+    case ACTION_TYPES.ADD_TODO:
+      data.push({
+        text: payload.todoText,
+        done: false
+      });
+      break;
+
+    case ACTION_TYPES.TOGGLE_TODO:
+      var id = payload.todoId;
+      data[id].done = !data[id].done;
+      break;
+
+    case ACTION_TYPES.CLEAR_TODOS:
+      data = data.filter(function (todo) {
+        return !todo.done;
+      });
+      break;
+
+    default:
+      return true;
+  }
+
+  TodoStore.emitChange();
+  return true;
 });
 
 // View
@@ -91,7 +123,7 @@ var TodoItem = React.createClass({
   },
 
   _onChange: function () {
-    TodoActions.toggleTodo(this.props.id);
+    actions.toggleTodo(this.props.id);
   }
 });
 
@@ -125,13 +157,13 @@ var TodoForm = React.createClass({
       return;
     }
 
-    TodoActions.addTodo(this.state.text);
+    actions.addTodo(this.state.text);
 
     this.setState({text: ''});
   },
 
   _onClick: function () {
-    TodoActions.clearTodos();
+    actions.clearTodos();
   }
 });
 
@@ -165,15 +197,15 @@ var TodoList = React.createClass({
 
 var TodoApp = React.createClass({
   getInitialState: function () {
-    return TodoStore.getState();
+    return {todos: TodoStore.getTodos()};
   },
 
   componentDidMount: function () {
-    TodoStore.listen(this._onChange);
+    TodoStore.addChangeListener(this._onChange);
   },
 
   componentWillUnmount: function () {
-    TodoStore.unlisten(this._onChange);
+    TodoStore.removeChangeListener(this._onChange);
   },
 
   render: function () {
@@ -185,8 +217,8 @@ var TodoApp = React.createClass({
     );
   },
 
-  _onChange: function (state) {
-    this.setState(state);
+  _onChange: function () {
+    this.setState({todos: TodoStore.getTodos()});
   }
 });
 
