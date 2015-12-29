@@ -37,12 +37,6 @@ var TodoStore = alt.createStore({
     ]
   },
 
-  publicMethods: {
-    getTodos: function () {
-      return this.state.todos;
-    }
-  },
-
   handleAddTodo: function (text) {
     var todos = this.state.todos;
     todos.push({text: text, done: false});
