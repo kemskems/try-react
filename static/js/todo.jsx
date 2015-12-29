@@ -40,16 +40,10 @@ var TodoStore = alt.createStore({
   publicMethods: {
     getTodos: function () {
       return this.state.todos;
-    },
-    getUndoneCount: function () {
-      return this.state.todos.reduce(function (acc, todo) {
-        return acc + (todo.done ? 0 : 1);
-      }, 0);
     }
   },
 
   handleAddTodo: function (text) {
-    console.log('this.getState:', typeof this.getState);
     var todos = this.state.todos;
     todos.push({text: text, done: false});
     this.setState({todos: todos});
@@ -144,10 +138,10 @@ var TodoList = React.createClass({
                   id={index}
         />
       );
-    }.bind(this));
+    });
 
     var listDesc = 'All done!';
-    var undoneCount = TodoStore.getUndoneCount();
+    var undoneCount = this.getUndoneCount();
     if (undoneCount) {
       listDesc = 'You have ' + undoneCount + ' remaining tasks';
     }
@@ -160,6 +154,12 @@ var TodoList = React.createClass({
         <span>{listDesc}</span>
       </div>
     );
+  },
+
+  getUndoneCount: function () {
+    return this.props.todos.reduce(function (acc, todo) {
+      return acc + (todo.done ? 0 : 1);
+    }, 0);
   }
 });
 
