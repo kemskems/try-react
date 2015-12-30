@@ -31,11 +31,15 @@ var todoActionCreators = {
 
 // Reducers
 
+var TodoRecord = Immutable.Record({
+  text: '',
+  done: false
+});
 var initialState = {
-  todos: [
-    {text: 'Makan siang', done: false},
-    {text: 'Beli baju', done: true}
-  ]
+  todos: Immutable.List([
+    new TodoRecord({text: 'Makan siang'}),
+    new TodoRecord({text: 'Beli baju', done: true})
+  ])
 };
 
 var todoReducer = function (todos, action) {
@@ -45,17 +49,18 @@ var todoReducer = function (todos, action) {
 
   switch (action.type) {
     case ADD_TODO:
-      return todos.concat([{
-        text: action.payload.text, done: false
-      }]);
+      return todos.push(new TodoRecord({
+        text: action.payload.text,
+        done: false
+      }));
       break;
 
     case TOGGLE_TODO:
-      return todos.map(function (todo, index) {
-        if (index === action.payload.id) {
-          todo.done = !todo.done;
-        }
-        return todo;
+      return todos.update(action.payload.id, function (todo) {
+        return new TodoRecord({
+          text: todo.text,
+          done: !todo.done
+        });
       });
       break;
 
