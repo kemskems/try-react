@@ -1,63 +1,85 @@
-// Dispatcher
+// Action types
 
-var alt = new Alt();
+var ADD_TODO = 'ADD_TODO';
+var TOGGLE_TODO = 'TOGGLE_TODO';
+var CLEAR_TODOS = 'CLEAR_TODOS';
 
-// Actions
+// Action creators
+// action schema adhering to https://github.com/acdlite/flux-standard-action
 
-var TodoActions = alt.createActions({
+var todoActionCreators = {
   addTodo: function (text) {
-    return text;
+    return {
+      type: ADD_TODO,
+      payload: {
+        text: text
+      }
+    };
   },
-
   toggleTodo: function (id) {
-    return id;
+    return {
+      type: TOGGLE_TODO,
+      payload: {
+        id: id
+      }
+    };
   },
-
   clearTodos: function () {
-    // Action MUST return so it will dispatch
-    return true;
+    return { type: CLEAR_TODOS };
   }
-});
+};
+
+// Reducers
+
+var initialState = {
+  todos: [
+    {text: 'Makan siang', done: false},
+    {text: 'Beli baju', done: true}
+  ]
+};
+
+var todoReducer = function (todos, action) {
+  if (typeof todos === 'undefined') {
+    return initialState.todos;
+  }
+
+  switch (action.type) {
+    case ADD_TODO:
+      return todos.concat([{
+        text: action.payload.text, done: false
+      }]);
+      break;
+
+    case TOGGLE_TODO:
+      return todos.map(function (todo, index) {
+        if (index === action.payload.id) {
+          todo.done = !todo.done;
+        }
+        return todo;
+      });
+      break;
+
+    case CLEAR_TODOS:
+      return todos.filter(function (todo) {
+        return !todo.done;
+      });
+      break;
+
+    default:
+      return todos;
+  }
+};
 
 // Store
+// Our todo app's state is just on object with a list of todos under `todos` key
+// A todo is an object with key `text` and `done`
 
-var TodoStore = alt.createStore({
-  displayName: 'TodoStore',
-
-  bindListeners: {
-    handleAddTodo: TodoActions.addTodo,
-    handleToggleTodo: TodoActions.toggleTodo,
-    handleClearTodos: TodoActions.clearTodos
-  },
-
-  state: {
-    todos: [
-      {text: 'Makan siang', done: false},
-      {text: 'Beli baju', done: true}
-    ]
-  },
-
-  handleAddTodo: function (text) {
-    var todos = this.state.todos;
-    todos.push({text: text, done: false});
-    this.setState({todos: todos});
-  },
-
-  handleToggleTodo: function (id) {
-    var todos = this.state.todos;
-    todos[id].done = !todos[id].done;
-    this.setState({todos: todos});
-  },
-
-  handleClearTodos: function () {
-    var newTodos = this.state.todos.filter(function (todo) {
-      return !todo.done;
-    });
-    this.setState({todos: newTodos});
-  }
+var reducer = Redux.combineReducers({
+  todos: todoReducer
 });
+var store = Redux.createStore(reducer);
 
-// View
+// View: Presentational components
 
 var TodoItem = React.createClass({
   render: function () {
@@ -79,7 +101,7 @@ var TodoItem = React.createClass({
   },
 
   _onChange: function () {
-    TodoActions.toggleTodo(this.props.id);
+    this.props.toggleTodo(this.props.id);
   }
 });
 
@@ -113,13 +135,13 @@ var TodoForm = React.createClass({
       return;
     }
 
-    TodoActions.addTodo(this.state.text);
+    this.props.addTodo(todoText);
 
     this.setState({text: ''});
   },
 
   _onClick: function () {
-    TodoActions.clearTodos();
+    this.props.clearTodos();
   }
 });
 
@@ -130,9 +152,10 @@ var TodoList = React.createClass({
         <TodoItem text={todo.text}
                   done={todo.done}
                   id={index}
+                  toggleTodo={this.props.toggleTodo}
         />
       );
-    });
+    }.bind(this));
 
     var listDesc = 'All done!';
     var undoneCount = this.getUndoneCount();
@@ -157,34 +180,36 @@ var TodoList = React.createClass({
   }
 });
 
+// View: Container components
+
 var TodoApp = React.createClass({
-  getInitialState: function () {
-    return TodoStore.getState();
-  },
-
-  componentDidMount: function () {
-    TodoStore.listen(this._onChange);
-  },
-
-  componentWillUnmount: function () {
-    TodoStore.unlisten(this._onChange);
-  },
-
   render: function () {
     return (
       <div>
-        <TodoForm />
-        <TodoList todos={this.state.todos} />
+        <TodoForm
+            addTodo={this.props.addTodo}
+            clearTodos={this.props.clearTodos}
+        />
+        <TodoList
+            todos={this.props.todos}
+            toggleTodo={this.props.toggleTodo}
+        />
       </div>
     );
-  },
-
-  _onChange: function (state) {
-    this.setState(state);
   }
 });
 
+var mapStateToProps = function (state) {
+  return { todos: state.todos };
+};
+var FinalTodoApp = ReactRedux.connect(
+  mapStateToProps,
+  todoActionCreators
+)(TodoApp);
+
 React.render(
-  <TodoApp />,
+  <ReactRedux.Provider store={store}>
+    <FinalTodoApp />
+  </ReactRedux.Provider>,
   document.querySelector('#todo-container')
 );
